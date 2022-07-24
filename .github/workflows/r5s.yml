@@ -42,13 +42,13 @@ jobs:
         run: |
           cd
           curl -sL https://raw.githubusercontent.com/klever1988/nanopi-openwrt/zstd-bin/zstd | sudo tee /usr/bin/zstd > /dev/null
-          sudo umount lede || true
-          sudo fdisk -l | grep loop | grep '30 GiB' | awk '{print $2}' | tr -d ':' | xargs -r -n1 sudo losetup -d
+          sudo umount lede friendlywrt-rk3568 || true
+          sudo fdisk -l | grep loop | grep '45 GiB' | awk '{print $2}' | tr -d ':' | xargs -r -n1 sudo losetup -d
           rm -r lede* luci packages || true
           for i in {1..20}
           do
             curl -sL --fail https://github.com/klever1988/sshactions/releases/download/cache/lede.$DEVICE.img.zst.0$i || break
-          done | zstdmt -d -o lede.img || (truncate -s 55g lede.img && mkfs.btrfs -M lede.img)
+          done | zstdmt -d -o lede.img || (truncate -s 45g lede.img && mkfs.btrfs -M lede.img)
           LOOP_DEVICE=$(losetup -f) && echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
           sudo losetup -P --direct-io $LOOP_DEVICE lede.img
           cd -
@@ -123,8 +123,7 @@ jobs:
           sudo mount -o remount,compress=no,nodatacow,nodatasum lede
           cd lede/; pv /dev/zero > zerospace || true; sync; rm -f zerospace; cd -
           sleep 60
-          sudo umount friendlywrt-rk3568
-          sudo umount lede
+          sudo umount friendlywrt-rk3568 lede
           sudo losetup -d $LOOP_DEVICE
           export AUTH="Authorization: token ${{ secrets.SEC_TOKEN }}"
           export cache_path='github.com/repos/klever1988/sshactions/releases'
@@ -141,7 +140,7 @@ jobs:
           for i in {1..20}; do curl -sL --fail https://github.com/klever1988/sshactions/releases/download/cache/lede.$DEVICE.img.zst.0$i || break; done | zstdmt -d -o /dev/null
           if [ $? -eq 0 ]; then break; fi
           done
-
+          rm *.img.zst
           sudo mount -o loop ~/lede.img friendlywrt-rk3568
 
       - name: prepare relase
